@@ -20,6 +20,8 @@ namespace Digger
                 for (var y = 0; y < rows.Length; y++)
                 {
                     result[x, y] = CreateCreatureBySymbol(rows[y][x]);
+                    // Проверяем создали ли монстра или командира и добавляем их в соответствующие списки
+                    // Чтобы потом распределить подчиненных по командирам
                     if (result[x, y] is CommanderMonster)
                     {
                         Game.commanderMonsters.Add(result[x, y] as CommanderMonster);
@@ -34,7 +36,8 @@ namespace Digger
             return result;
         }
 
-        private static void DistributeMonstersByCommanders()
+        // Распределяем подчиненных по командирам (кому сколько достанется)
+        private static void DistributeMonstersByCommanders() 
         {
             int ccount = Game.commanderMonsters.Count;
             int mcount = Game.monsters.Count;

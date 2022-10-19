@@ -173,11 +173,12 @@ namespace Digger
     //Monster
     public class Monster : ICreature
     {
+        protected const int _pauseInterval = 2;// задержка передвижения монстра (чтобы двигался медленнее Player'a)
         bool _isDead = false; // признак, что монстр мертв
-        protected int _pause = 4; // задержка передвижения монстра (чтобы двигался медленнее Player'a)
+        protected int _pause = _pauseInterval; 
         protected int _imgIndex = 0; // Текущий индекс изображения монстра 0 или 1, в зависимости от индекса меняется спрайт и достигается эффект анимации
         protected int _x = 0; // координата x монстра
-        protected int _y = 0; // координата x монстра
+        protected int _y = 0; // координата y монстра
         public bool IsDead { get => _isDead; }
         Queue<CommanderCommand> _commandQueue = new Queue<CommanderCommand>(); // очередь команд, которые исполняются подчиненным
         public bool HasCommand { get => _commandQueue.Count > 0; } // свойство, отвечающее за наличие у монстра неисполненных команд
@@ -190,28 +191,31 @@ namespace Digger
                 _commandQueue.Enqueue(command);
         }
 
-        protected bool CanMove(ICreature obj) // проверка может ли монстр переместиться в клетку с объектом obj
+        protected bool CanMove(int x, int y)// проверка может ли монстр переместиться в клетку с объектом obj
         {
-            /*_pause--;
-            if (_pause == 0)
+            if (x >= 0 && x < Game.MapWidth && y >= 0 && y < Game.MapHeight)
             {
-                _pause = 4;
+                var obj = Game.Map[x, y];
+                return (obj is Gold) || (obj is null) || (obj is Player);
             }
-            else
-                return false;*/
-            return (obj is Gold) || (obj is null) || (obj is Player);
+            return false;
         }
 
         public virtual CreatureCommand Act(int x, int y)
         {
-            if (_commandQueue.Count > 0) // если есть комманды, берем из очереди
+            _pause--;
+            if (_pause == 0)
             {
-                var cmd = _commandQueue.Dequeue();
-                if (CanMove(Game.Map[x + cmd.dx, y + cmd.dy]))
+                _pause = _pauseInterval;
+                if (_commandQueue.Count > 0) // если есть комманды, берем из очереди
                 {
-                    _x = x + cmd.dx;
-                    _y = y + cmd.dy;
-                    return new CreatureCommand { DeltaX = cmd.dx, DeltaY = cmd.dy, TransformTo = this };
+                    var cmd = _commandQueue.Dequeue();
+                    if (CanMove(x + cmd.dx, y + cmd.dy))
+                    {
+                        _x = x + cmd.dx;
+                        _y = y + cmd.dy;
+                        return new CreatureCommand { DeltaX = cmd.dx, DeltaY = cmd.dy, TransformTo = this };
+                    }
                 }
             }
             _x = x;
@@ -283,7 +287,8 @@ namespace Digger
             {
                 cmd = CalculateDeltaForCommander(x, y, playerX, playerY);
             }
-            SendCommandsToSlaveMonsters(playerX, playerY);
+            if (playerX >=0 && playerY >=0) // проверяем сущестует ли на карте игрок, если -1 координаты, то он уже умер
+                SendCommandsToSlaveMonsters(playerX, playerY);
             return new CreatureCommand { DeltaX = cmd.dx, DeltaY = cmd.dy, TransformTo = this };
         }
 
@@ -291,19 +296,19 @@ namespace Digger
         CommanderCommand CalculateDeltaForCommander(int x, int y, int playerX, int playerY) 
         {
             int dx = 0, dy = 0;
-            if (x > playerX && (CanMove(Game.Map[x - 1, y])))
+            if (x > playerX && (CanMove(x - 1, y)))
             {
                 dx = -1; dy = 0;
             }
-            else if (x < playerX && (CanMove(Game.Map[x + 1, y])))
+            else if (x < playerX && (CanMove(x + 1, y)))
             {
                 dx = 1; dy = 0;
             }
-            else if (y > playerY && (CanMove(Game.Map[x, y - 1])))
+            else if (y > playerY && (CanMove(x, y - 1)))
             {
                 dx = 0; dy = -1;
             }
-            else if (y < playerY && (CanMove(Game.Map[x, y + 1])))
+            else if (y < playerY && (CanMove(x, y + 1)))
             {
                 dx = 0; dy = 1;
             }
@@ -316,19 +321,19 @@ namespace Digger
         CommanderCommand CalculateDeltaForSlave(int x, int y, int playerX, int playerY)
         {
             int dx = 0, dy = 0;
-            if (x > playerX && (CanMove(Game.Map[x - 1, y])))
+            if (x > playerX && (CanMove(x - 1, y)))
             {
                 dx = -1; dy = 0;
             }
-            else if (x < playerX && (CanMove(Game.Map[x + 1, y])))
+            else if (x < playerX && (CanMove(x + 1, y)))
             {
                 dx = 1; dy = 0;
             }
-            else if (y > playerY && (CanMove(Game.Map[x, y - 1])))
+            else if (y > playerY && (CanMove(x, y - 1)))
             {
                 dx = 0; dy = -1;
             }
-            else if (y < playerY && (CanMove(Game.Map[x, y + 1])))
+            else if (y < playerY && (CanMove(x, y + 1)))
             {
                 dx = 0; dy = 1;
             }

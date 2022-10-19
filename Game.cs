@@ -19,10 +19,11 @@ T TSTS TT
 T TTTG ST
 TSTSTT TT";
 
+        // m - монстр M - командир
         private const string mapWithPlayerTerrainSackGoldMonster = @"
 PTTGTT TST
-TST  TSTTm
-TTT TTSTTT
+TST  T TTm
+TTT TT TTT
 T TSTS TTT
 T TTTGmSTS
 T TMT m TS
@@ -41,6 +42,7 @@ S TTST  TG
 
         //список монстров
         public static List<Monster> monsters = new List<Monster>();
+        // список командиров
         public static List<CommanderMonster> commanderMonsters = new List<CommanderMonster>();
 
         public static void CreateMap()
