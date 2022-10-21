@@ -43,34 +43,38 @@ namespace Digger
 
         public CreatureCommand Act(int x, int y)
         {
-            switch (Game.KeyPressed)
-            {
-                case System.Windows.Forms.Keys.Up:
-                    if (y > 0 && CanMove(Game.Map[x, y-1]))
-                    {
-                        return new CreatureCommand { DeltaX = 0, DeltaY = -1, TransformTo = this };
-                    }
-                    break;
-                case System.Windows.Forms.Keys.Down:
-                    if (y < Game.MapHeight - 1 && CanMove(Game.Map[x, y + 1]))
-                    {
-                        return new CreatureCommand { DeltaX = 0, DeltaY = 1, TransformTo = this };
-                    }
-                    break;
-                case System.Windows.Forms.Keys.Right:
-                    if (x < Game.MapWidth - 1 && CanMove(Game.Map[x + 1, y]))
-                    {
-                        return new CreatureCommand { DeltaX = 1, DeltaY = 0, TransformTo = this };
-                    }
-                    break;
-                case System.Windows.Forms.Keys.Left:
-                    if (x > 0 && CanMove(Game.Map[x - 1, y]))
-                    {
-                        return new CreatureCommand { DeltaX = -1, DeltaY = 0, TransformTo = this };
-                    }
-                    break;
-            }
-            return new CreatureCommand { DeltaX = 0, DeltaY = 0, TransformTo = this };
+            var playerTask = Task.Run(() => {
+                switch (Game.KeyPressed)
+                {
+                    case System.Windows.Forms.Keys.Up:
+                        if (y > 0 && CanMove(Game.Map[x, y - 1]))
+                        {
+                            return new CreatureCommand { DeltaX = 0, DeltaY = -1, TransformTo = this };
+                        }
+                        break;
+                    case System.Windows.Forms.Keys.Down:
+                        if (y < Game.MapHeight - 1 && CanMove(Game.Map[x, y + 1]))
+                        {
+                            return new CreatureCommand { DeltaX = 0, DeltaY = 1, TransformTo = this };
+                        }
+                        break;
+                    case System.Windows.Forms.Keys.Right:
+                        if (x < Game.MapWidth - 1 && CanMove(Game.Map[x + 1, y]))
+                        {
+                            return new CreatureCommand { DeltaX = 1, DeltaY = 0, TransformTo = this };
+                        }
+                        break;
+                    case System.Windows.Forms.Keys.Left:
+                        if (x > 0 && CanMove(Game.Map[x - 1, y]))
+                        {
+                            return new CreatureCommand { DeltaX = -1, DeltaY = 0, TransformTo = this };
+                        }
+                        break;
+                }
+                return new CreatureCommand { DeltaX = 0, DeltaY = 0, TransformTo = this };
+
+            });
+            return playerTask.Result;
         }
 
         public bool DeadInConflict(ICreature conflictedObject)
@@ -203,24 +207,28 @@ namespace Digger
 
         public virtual CreatureCommand Act(int x, int y)
         {
-            _pause--;
-            if (_pause == 0)
-            {
-                _pause = _pauseInterval;
-                if (_commandQueue.Count > 0) // если есть комманды, берем из очереди
+            var monsterTask = Task.Run(()=>{
+                _pause--;
+                if (_pause == 0)
                 {
-                    var cmd = _commandQueue.Dequeue();
-                    if (CanMove(x + cmd.dx, y + cmd.dy))
+                    _pause = _pauseInterval;
+                    if (_commandQueue.Count > 0) // если есть комманды, берем из очереди
                     {
-                        _x = x + cmd.dx;
-                        _y = y + cmd.dy;
-                        return new CreatureCommand { DeltaX = cmd.dx, DeltaY = cmd.dy, TransformTo = this };
+                        var cmd = _commandQueue.Dequeue();
+                        if (CanMove(x + cmd.dx, y + cmd.dy))
+                        {
+                            _x = x + cmd.dx;
+                            _y = y + cmd.dy;
+                            return new CreatureCommand { DeltaX = cmd.dx, DeltaY = cmd.dy, TransformTo = this };
+                        }
                     }
                 }
-            }
-            _x = x;
-            _y = y;
-            return new CreatureCommand { DeltaX = 0, DeltaY = 0, TransformTo = this };
+                _x = x;
+                _y = y;
+                return new CreatureCommand { DeltaX = 0, DeltaY = 0, TransformTo = this };
+
+            });
+            return monsterTask.Result;
         }
 
         public bool DeadInConflict(ICreature conflictedObject)
@@ -280,16 +288,19 @@ namespace Digger
 
         public override CreatureCommand Act(int x, int y)
         {
-            int playerX, playerY;
-            CommanderCommand cmd = new CommanderCommand { dx = 0, dy = 0 };
+            var commanderTask = Task.Run(()=>{
+                int playerX, playerY;
+                CommanderCommand cmd = new CommanderCommand { dx = 0, dy = 0 };
 
-            if (NeedMove(out playerX, out playerY)) // Проверяем, существует ли на карте Player и если да, то вычисляем вектор перемешения к нему
-            {
-                cmd = CalculateDeltaForCommander(x, y, playerX, playerY);
-            }
-            if (playerX >=0 && playerY >=0) // проверяем сущестует ли на карте игрок, если -1 координаты, то он уже умер
-                SendCommandsToSlaveMonsters(playerX, playerY);
-            return new CreatureCommand { DeltaX = cmd.dx, DeltaY = cmd.dy, TransformTo = this };
+                if (NeedMove(out playerX, out playerY)) // Проверяем, существует ли на карте Player и если да, то вычисляем вектор перемешения к нему
+                {
+                    cmd = CalculateDeltaForCommander(x, y, playerX, playerY);
+                }
+                if (playerX >= 0 && playerY >= 0) // проверяем сущестует ли на карте игрок, если -1 координаты, то он уже умер
+                    SendCommandsToSlaveMonsters(playerX, playerY);
+                return new CreatureCommand { DeltaX = cmd.dx, DeltaY = cmd.dy, TransformTo = this };
+            });
+            return commanderTask.Result;
         }
 
         // вычисление вектора перемещения к игроку монстра-командира
